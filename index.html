@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Planificador Financiero Pro</title>
+  <!-- Chart.js para los gráficos comparativos -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary: #2563eb;
+      --success: #16a34a;
+      --danger: #dc2626;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --text: #0f172a;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 0;
+      padding-bottom: 70px;
+    }
+    header {
+      background: var(--primary);
+      color: white;
+      padding: 1rem;
+      text-align: center;
+      font-weight: bold;
+      font-size: 1.2rem;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    h2, h3 { margin-top: 0; }
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-box {
+      background: #f1f5f9;
+      padding: 10px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .stat-box.highlight {
+      background: #dbeafe;
+      border: 1px solid var(--primary);
+    }
+    .stat-title { font-size: 0.8rem; color: #64748b; }
+    .stat-value { font-size: 1.1rem; font-weight: bold; margin-top: 4px; }
+    label { display: block; font-size: 0.85rem; margin-top: 8px; font-weight: 600; }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 4px;
+      border-radius: 6px;
+      border: 1px solid #cbd5e1;
+      box-sizing: border-box;
+    }
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    .btn-secondary { background: #64748b; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+      font-size: 0.85rem;
+    }
+    th, td {
+      padding: 8px;
+      text-align: left;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    .badge {
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: white;
+    }
+    .badge-fijo { background: #8b5cf6; }
+    .badge-variable { background: #f59e0b; }
+    nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      display: flex;
+      border-top: 1px solid #e2e8f0;
+    }
+    nav button {
+      flex: 1;
+      margin: 0;
+      border-radius: 0;
+      background: transparent;
+      color: #64748b;
+      padding: 12px 0;
+      font-size: 0.8rem;
+    }
+    nav button.active {
+      color: var(--primary);
+      border-top: 2px solid var(--primary);
+    }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+  </style>
+</head>
+<body>
+
+  <header>Planificador Financiero</header>
+
+  <div class="container">
+    <!-- PESTAÑA 1: PLANIFICACIÓN Y SEGUIMIENTO -->
+    <div id="tab-plan" class="tab-content active">
+      <div class="card">
+        <label for="select-mes">Mes de Planificación:</label>
+        <input type="month" id="select-mes" onchange="cargarDatosMes()">
+      </div>
+
+      <!-- PUNTO 0: RESUMEN DE PROYECCIÓN Y AHORRO -->
+      <div class="card">
+        <h3>Punto 0: Proyección y Ahorro</h3>
+        <div class="grid-2">
+          <div class="stat-box">
+            <div class="stat-title">Ingreso Estimado</div>
+            <div class="stat-value" id="disp-ingreso-plan">$0</div>
+          </div>
+          <div class="stat-box highlight">
+            <div class="stat-title">Ahorro Proyectado</div>
+            <div class="stat-value" id="disp-ahorro-plan">$0</div>
+          </div>
+        </div>
+        <div class="grid-2" style="margin-top: 10px;">
+          <div class="stat-box">
+            <div class="stat-title">Gastos Fijos Plan.</div>
+            <div class="stat-value" id="disp-fijos-plan">$0</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-title">Gastos Var. Plan.</div>
+            <div class="stat-value" id="disp-var-plan">$0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FORMULARIO DE INGRESO ESTIMADO -->
+      <div class="card">
+        <h3>1. Configurar Ingreso Mensual</h3>
+        <label>Monto de Ingreso Estimado ($):</label>
+        <input type="number" id="input-ingreso-plan" placeholder="Ej. 2000">
+        <button onclick="guardarIngreso()">Establecer Ingreso Planificado</button>
+      </div>
+
+      <!-- FORMULARIO DE PLANIFICACIÓN DE GASTOS -->
+      <div class="card">
+        <h3>2. Agregar Ítem al Plan</h3>
+        <label>Nombre del Gasto / Item:</label>
+        <input type="text" id="item-nombre" placeholder="Ej. Arriendo, Supermercado">
+        
+        <div class="grid-2">
+          <div>
+            <label>Monto Planificado ($):</label>
+            <input type="number" id="item-monto-plan" placeholder="0">
+          </div>
+          <div>
+            <label>Tipo de Gasto:</label>
+            <select id="item-tipo">
+              <option value="fijo">Fijo</option>
+              <option value="variable">Variable</option>
+            </select>
+          </div>
+        </div>
+
+        <label>Etiqueta / Categoría:</label>
+        <input type="text" id="item-etiqueta" placeholder="Ej. Vivienda, Alimentación, Ocio">
+
+        <button onclick="agregarItemPlan()">+ Agregar Ítem al Plan</button>
+      </div>
+
+      <!-- TABLA COMPARATIVA PLANIFICADO VS REAL -->
+      <div class="card">
+        <h3>3. Detalle: Planificado vs. Real</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>Ítem</th>
+              <th>Tipo/Etiqueta</th>
+              <th>Plan</th>
+              <th>Real</th>
+              <th>Estado</th>
+            </tr>
+          </thead>
+          <tbody id="tabla-items">
+            <!-- Se llena dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PESTAÑA 2: BALANCE ANUAL -->
+    <div id="tab-anual" class="tab-content">
+      <div class="card">
+        <h3>Comparativa Anual (Plan vs. Real)</h3>
+        <canvas id="graficoAnual" width="400" height="300"></canvas>
+      </div>
+      <div class="card">
+        <h3>Ahorro Acumulado en el Año</h3>
+        <div class="grid-2">
+          <div class="stat-box">
+            <div class="stat-title">Ahorro Proyectado Anual</div>
+            <div class="stat-value" id="anual-ahorro-plan">$0</div>
+          </div>
+          <div class="stat-box highlight">
+            <div class="stat-title">Ahorro Real Anual</div>
+            <div class="stat-value" id="anual-ahorro-real">$0</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NAVEGACIÓN INFERIOR -->
+  <nav>
+    <button class="active" onclick="cambiarPestana('tab-plan', this)">Plan Mensual</button>
+    <button onclick="cambiarPestana('tab-anual', this)">Vista Anual</button>
+  </nav>
+
+  <script>
+    // Estructura principal de datos guardados en LocalStorage
+    let db = JSON.parse(localStorage.getItem('finanzas_plan')) || {};
+    let mesActual = new Date().toISOString().slice(0, 7);
+    let chartInstance = null;
+
+    document.getElementById('select-mes').value = mesActual;
+
+    // Inicializar estructura del mes si no existe
+    function initMes(mes) {
+      if (!db[mes]) {
+        db[mes] = {
+          ingresoPlanificado: 0,
+          items: [] // { id, nombre, montoPlan, tipo, etiqueta, montoReal, cumplido }
+        };
+      }
+    }
+
+    // Guardar cambios en LocalStorage
+    function guardarDB() {
+      localStorage.setItem('finanzas_plan', JSON.stringify(db));
+      cargarDatosMes();
+    }
+
+    // Guardar el ingreso planificado del mes
+    function guardarIngreso() {
+      const mes = document.getElementById('select-mes').value;
+      initMes(mes);
+      const val = parseFloat(document.getElementById('input-ingreso-plan').value) || 0;
+      db[mes].ingresoPlanificado = val;
+      guardarDB();
+    }
+
+    // Agregar un nuevo ítem de gasto al plan
+    function agregarItemPlan() {
+      const mes = document.getElementById('select-mes').value;
+      initMes(mes);
+
+      const nombre = document.getElementById('item-nombre').value.trim();
+      const montoPlan = parseFloat(document.getElementById('item-monto-plan').value) || 0;
+      const tipo = document.getElementById('item-tipo').value;
+      const etiqueta = document.getElementById('item-etiqueta').value.trim() || 'General';
+
+      if (!nombre || montoPlan <= 0) {
+        alert('Por favor ingresa un nombre y un monto válido.');
+        return;
+      }
+
+      db[mes].items.push({
+        id: Date.now(),
+        nombre: nombre,
+        montoPlan: montoPlan,
+        tipo: tipo,
+        etiqueta: etiqueta,
+        montoReal: 0,
+        cumplido: false
+      });
+
+      // Limpiar formulario
+      document.getElementById('item-nombre').value = '';
+      document.getElementById('item-monto-plan').value = '';
+      document.getElementById('item-etiqueta').value = '';
+
+      guardarDB();
+    }
+
+    // Actualizar el valor real ejecutado o el estado de cumplimiento
+    function actualizarReal(id, campo, valor) {
+      const mes = document.getElementById('select-mes').value;
+      const item = db[mes].items.find(i => i.id === id);
+      if (item) {
+        if (campo === 'montoReal') item.montoReal = parseFloat(valor) || 0;
+        if (campo === 'cumplido') item.cumplido = valor;
+        localStorage.setItem('finanzas_plan', JSON.stringify(db));
+        cargarDatosMes();
+      }
+    }
+
+    // Cargar y procesar datos del mes seleccionado (Punto 0)
+    function cargarDatosMes() {
+      const mes = document.getElementById('select-mes').value;
+      initMes(mes);
+      const datosMes = db[mes];
+
+      document.getElementById('input-ingreso-plan').value = datosMes.ingresoPlanificado || '';
+
+      // Cálculos de Totales
+      let fijosPlan = 0, varPlan = 0;
+      datosMes.items.forEach(i => {
+        if (i.tipo === 'fijo') fijosPlan += i.montoPlan;
+        if (i.tipo === 'variable') varPlan += i.montoPlan;
+      });
+
+      const totalGastosPlan = fijosPlan + varPlan;
+      const ahorroProyectado = datosMes.ingresoPlanificado - totalGastosPlan;
+
+      // Renderizar valores en pantalla
+      document.getElementById('disp-ingreso-plan').textContent = `$${datosMes.ingresoPlanificado.toLocaleString()}`;
+      document.getElementById('disp-fijos-plan').textContent = `$${fijosPlan.toLocaleString()}`;
+      document.getElementById('disp-var-plan').textContent = `$${varPlan.toLocaleString()}`;
+      document.getElementById('disp-ahorro-plan').textContent = `$${ahorroProyectado.toLocaleString()}`;
+
+      // Renderizar Tabla de Ítems
+      const tbody = document.getElementById('tabla-items');
+      tbody.innerHTML = '';
+
+      datosMes.items.forEach(i => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <strong>${i.nombre}</strong>
+          </td>
+          <td>
+            <span class="badge badge-${i.tipo}">${i.tipo}</span><br>
+            <small>${i.etiqueta}</small>
+          </td>
+          <td>$${i.montoPlan.toLocaleString()}</td>
+          <td>
+            <input type="number" style="width:70px; padding:4px;" value="${i.montoReal}" 
+                   onchange="actualizarReal(${i.id}, 'montoReal', this.value)">
+          </td>
+          <td>
+            <input type="checkbox" ${i.cumplido ? 'checked' : ''} 
+                   onchange="actualizarReal(${i.id}, 'cumplido', this.checked)">
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // Cambio de Pestañas
+    function cambiarPestana(tabId, btn) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      btn.classList.add('active');
+
+      if (tabId === 'tab-anual') renderGraficoAnual();
+    }
+
+    // Renderizar gráfico y totales anuales
+    function renderGraficoAnual() {
+      const meses = Object.keys(db).sort();
+      const planificados = [];
+      const reales = [];
+      let totalAhorroPlan = 0;
+      let totalAhorroReal = 0;
+
+      meses.forEach(m => {
+        const ing = db[m].ingresoPlanificado || 0;
+        let gastoP = 0, gastoR = 0;
+        db[m].items.forEach(i => {
+          gastoP += i.montoPlan;
+          gastoR += i.montoReal;
+        });
+
+        planificados.push(gastoP);
+        reales.push(gastoR);
+
+        totalAhorroPlan += (ing - gastoP);
+        totalAhorroReal += (ing - gastoR);
+      });
+
+      document.getElementById('anual-ahorro-plan').textContent = `$${totalAhorroPlan.toLocaleString()}`;
+      document.getElementById('anual-ahorro-real').textContent = `$${totalAhorroReal.toLocaleString()}`;
+
+      const ctx = document.getElementById('graficoAnual').getContext('2d');
+      if (chartInstance) chartInstance.destroy();
+
+      chartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: meses,
+          datasets: [
+            { label: 'Gasto Planificado', data: planificados, backgroundColor: '#2563eb' },
+            { label: 'Gasto Real', data: reales, backgroundColor: '#dc2626' }
+          ]
+        },
+        options: { responsive: true, scales: { y: { beginAtZero: true } } }
+      });
+    }
+
+    // Carga inicial
+    cargarDatosMes();
+  </script>
+</body>
+</html>
